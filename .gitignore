@@ -42,7 +42,6 @@ example
 /ios
 /android
 
-.gitignore
 .calude
 .vscode
 AGENTS.md
