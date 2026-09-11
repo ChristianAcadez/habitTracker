@@ -202,3 +202,41 @@ function shiftDate(dateStr: string, days: number): string {
   d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
+
+export async function getAllHabits(db: SQLiteDatabase): Promise<Habit[]> {
+  return db.getAllAsync<Habit>(`SELECT * FROM habits ORDER BY created_at ASC`);
+}
+
+export async function getMonthCompletionRate(
+  db: SQLiteDatabase,
+  year: number,
+  month: number,
+  today: string
+): Promise<number> {
+  const monthStr = String(month).padStart(2, '0');
+  const start = `${year}-${monthStr}-01`;
+  const lastDayOfMonth = new Date(year, month, 0).getDate();
+  const monthEnd = `${year}-${monthStr}-${String(lastDayOfMonth).padStart(2, '0')}`;
+  const end = monthEnd < today ? monthEnd : today;
+
+  if (start > end) return 0;
+
+  const row = await db.getFirstAsync<{ total_active: number; total_completed: number }>(
+    `WITH RECURSIVE dates(date) AS (
+       SELECT date(?)
+       UNION ALL
+       SELECT date(date, '+1 day') FROM dates WHERE date < date(?)
+     )
+     SELECT
+       SUM((SELECT COUNT(*) FROM habits h
+              WHERE h.created_at <= d.date
+                AND (h.end_date IS NULL OR h.end_date >= d.date))) as total_active,
+       SUM((SELECT COUNT(*) FROM records r
+              WHERE r.date = d.date AND r.completed = 1)) as total_completed
+     FROM dates d`,
+    [start, end]
+  );
+
+  if (!row || !row.total_active) return 0;
+  return Math.round((row.total_completed / row.total_active) * 100);
+}
