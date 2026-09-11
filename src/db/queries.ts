@@ -31,7 +31,7 @@ export async function getActiveHabits(
 }
 
 // Hábitos de hoy + si ya se marcaron como completados
-export async function getTodayHabitsWithStatus(
+export async function getHabitsWithStatusForDate(
   db: SQLiteDatabase,
   date: string
 ): Promise<HabitWithStatus[]> {

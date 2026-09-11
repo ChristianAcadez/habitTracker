@@ -4,7 +4,7 @@ import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getTodayHabitsWithStatus, toggleHabitRecord, HabitWithStatus } from '../../db/queries';
+import { getHabitsWithStatusForDate, toggleHabitRecord, HabitWithStatus } from '../../db/queries';
 import { router } from 'expo-router';
 import { Alert } from 'react-native';
 import { completeHabit } from '../../db/queries';
@@ -28,7 +28,7 @@ export default function IndexScreen() {
   const today = getTodayString();
 
   const loadHabits = useCallback(async () => {
-    const result = await getTodayHabitsWithStatus(db, today);
+    const result = await getHabitsWithStatusForDate(db, today);
     setHabits(result);
     setLoading(false);
   }, [db, today]);
