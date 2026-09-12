@@ -1,30 +1,32 @@
 // src/app/(tabs)/calendar.tsx
 import { useState, useCallback, useEffect } from 'react';
-import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getMonthSummary, DaySummary, DayStatus } from '../../db/queries';
-import { Modal, Pressable as RNPressable } from 'react-native';
-import { getHabitsWithStatusForDate, HabitWithStatus } from '../../db/queries';
+import {
+  getMonthSummary,
+  getHabitsWithStatusForDate,
+  DaySummary,
+  DayStatus,
+  HabitWithStatus,
+} from '../../db/queries';
+import { colors } from '../../constants/colors';
+import { getTodayString } from '../../utils/date';
 
 const STATUS_COLORS: Record<DayStatus, string> = {
-  complete: '#4CAF50',
-  partial: '#FFC107',
-  none: '#E57373',
+  complete: colors.statusComplete,
+  partial: colors.statusPartial,
+  none: colors.statusNone,
 };
 
 const WEEKDAY_LABELS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
-
-function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function buildCalendarGrid(year: number, month: number, summaries: DaySummary[]) {
   const statusByDate = new Map(summaries.map((s) => [s.date, s.status]));
   const firstDayOfMonth = new Date(year, month - 1, 1);
   const daysInMonth = new Date(year, month, 0).getDate();
-  const leadingBlanks = firstDayOfMonth.getDay(); // 0 (domingo) a 6
+  const leadingBlanks = firstDayOfMonth.getDay();
 
   const cells: { day: number | null; status: DayStatus | null }[] = [];
 
@@ -43,7 +45,7 @@ export default function CalendarScreen() {
   const db = useSQLiteContext();
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
-  const [month, setMonth] = useState(today.getMonth() + 1); // 1-12
+  const [month, setMonth] = useState(today.getMonth() + 1);
   const [summaries, setSummaries] = useState<DaySummary[]>([]);
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -102,11 +104,11 @@ export default function CalendarScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Pressable onPress={goToPreviousMonth}>
-          <Ionicons name="chevron-back" size={24} />
+          <Ionicons name="chevron-back" size={24} color={colors.textPrimary} />
         </Pressable>
         <Text style={styles.monthLabel}>{monthLabel}</Text>
         <Pressable onPress={goToNextMonth}>
-          <Ionicons name="chevron-forward" size={24} />
+          <Ionicons name="chevron-forward" size={24} color={colors.textPrimary} />
         </Pressable>
       </View>
 
@@ -140,14 +142,15 @@ export default function CalendarScreen() {
           </Pressable>
         ))}
       </View>
+
       <Modal
         visible={selectedDate !== null}
         transparent
         animationType="fade"
         onRequestClose={() => setSelectedDate(null)}
       >
-        <RNPressable style={styles.modalOverlay} onPress={() => setSelectedDate(null)}>
-          <RNPressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={styles.modalOverlay} onPress={() => setSelectedDate(null)}>
+          <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.modalTitle}>
               {selectedDate && formatModalDate(selectedDate)}
             </Text>
@@ -160,7 +163,7 @@ export default function CalendarScreen() {
                   <Ionicons
                     name={habit.completed ? 'checkmark-circle' : 'close-circle'}
                     size={20}
-                    color={habit.completed ? '#4CAF50' : '#E57373'}
+                    color={habit.completed ? colors.statusComplete : colors.statusNone}
                   />
                   <Text style={styles.modalHabitName}>{habit.name}</Text>
                 </View>
@@ -170,25 +173,28 @@ export default function CalendarScreen() {
             <Pressable style={styles.modalCloseButton} onPress={() => setSelectedDate(null)}>
               <Text style={styles.modalCloseText}>Cerrar</Text>
             </Pressable>
-          </RNPressable>
-        </RNPressable>
+          </Pressable>
+        </Pressable>
       </Modal>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
+  container: { flex: 1, backgroundColor: colors.background },
   header: {
+    backgroundColor: colors.surface,
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  monthLabel: { fontSize: 18, fontWeight: '600', textTransform: 'capitalize' },
-  weekdayRow: { flexDirection: 'row', marginBottom: 8 },
-  weekdayLabel: { flex: 1, textAlign: 'center', color: '#888', fontWeight: '600' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap' },
+  monthLabel: { fontSize: 18, fontWeight: '600', textTransform: 'capitalize', color: colors.textPrimary },
+  weekdayRow: { flexDirection: 'row', marginTop: 16, paddingHorizontal: 20 },
+  weekdayLabel: { flex: 1, textAlign: 'center', color: colors.textSecondary, fontWeight: '600' },
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 20 },
   cell: { width: '14.28%', aspectRatio: 1, alignItems: 'center', justifyContent: 'center' },
   dayCircle: {
     width: 32,
@@ -196,38 +202,39 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#e0e0e0', // gris para días futuros o sin datos aún
+    backgroundColor: colors.statusEmpty,
   },
-  dayText: { fontSize: 13, fontWeight: '500' },
+  dayText: { fontSize: 13, fontWeight: '500', color: colors.textPrimary },
 
   modalOverlay: {
-  flex: 1,
-  backgroundColor: 'rgba(0,0,0,0.5)',
-  justifyContent: 'center',
-  alignItems: 'center',
-},
-modalContent: {
-  backgroundColor: 'white',
-  borderRadius: 12,
-  padding: 20,
-  width: '85%',
-  maxHeight: '70%',
-},
-modalTitle: {
-  fontSize: 17,
-  fontWeight: '600',
-  textTransform: 'capitalize',
-  marginBottom: 16,
-},
-modalEmpty: { color: '#888', textAlign: 'center', paddingVertical: 20 },
-modalHabitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
-modalHabitName: { fontSize: 15 },
-modalCloseButton: {
-  marginTop: 16,
-  padding: 12,
-  alignItems: 'center',
-  backgroundColor: '#f0f0f0',
-  borderRadius: 8,
-},
-modalCloseText: { fontWeight: '600' },
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContent: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 20,
+    width: '85%',
+    maxHeight: '70%',
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: '600',
+    textTransform: 'capitalize',
+    marginBottom: 16,
+    color: colors.textPrimary,
+  },
+  modalEmpty: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 20 },
+  modalHabitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
+  modalHabitName: { fontSize: 15, color: colors.textPrimary },
+  modalCloseButton: {
+    marginTop: 16,
+    padding: 12,
+    alignItems: 'center',
+    backgroundColor: colors.border,
+    borderRadius: 8,
+  },
+  modalCloseText: { fontWeight: '600', color: colors.textPrimary },
 });

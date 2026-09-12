@@ -1,9 +1,21 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { colors } from '../../constants/colors';
 
 export default function TabsLayout() {
   return (
-    <Tabs initialRouteName="index" screenOptions={{ headerShown: false }}>
+    <Tabs
+      initialRouteName="index"
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
+        tabBarStyle: {
+          backgroundColor: colors.surface,
+          borderTopColor: colors.border,
+        },
+      }}
+    >
       <Tabs.Screen
         name="calendar"
         options={{

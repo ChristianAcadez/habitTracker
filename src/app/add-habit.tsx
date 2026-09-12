@@ -5,6 +5,8 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { router } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { createHabit } from '../db/queries';
+import { toDateString } from '../utils/date';
+import { colors } from '../constants/colors';
 
 type DurationMode = 'forever' | 'untilDate';
 
@@ -22,8 +24,7 @@ export default function AddHabitScreen() {
     if (!trimmedName) return;
 
     setSaving(true);
-    const endDateStr =
-      durationMode === 'untilDate' ? endDate.toISOString().slice(0, 10) : null;
+    const endDateStr = durationMode === 'untilDate' ? toDateString(endDate) : null;
 
     await createHabit(db, trimmedName, description.trim() || null, 'daily', endDateStr);
     router.back();
@@ -31,21 +32,23 @@ export default function AddHabitScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>Name</Text>
+      <Text style={styles.label}>Nombre</Text>
       <TextInput
         style={styles.input}
         value={name}
         onChangeText={setName}
-        placeholder="e.g. Brush teeth at night"
+        placeholder="ej. Cepillarme los dientes en la noche"
+        placeholderTextColor={colors.textSecondary}
         autoFocus
       />
 
-      <Text style={styles.label}>Description (optional)</Text>
+      <Text style={styles.label}>Descripción (opcional)</Text>
       <TextInput
         style={[styles.input, styles.multiline]}
         value={description}
         onChangeText={setDescription}
-        placeholder="Any extra notes"
+        placeholder="Notas adicionales"
+        placeholderTextColor={colors.textSecondary}
         multiline
       />
 
@@ -55,7 +58,7 @@ export default function AddHabitScreen() {
           style={[styles.segment, durationMode === 'forever' && styles.segmentActive]}
           onPress={() => setDurationMode('forever')}
         >
-          <Text style={durationMode === 'forever' && styles.segmentTextActive}>
+          <Text style={[styles.segmentText, durationMode === 'forever' && styles.segmentTextActive]}>
             Sin fecha de fin
           </Text>
         </Pressable>
@@ -63,7 +66,7 @@ export default function AddHabitScreen() {
           style={[styles.segment, durationMode === 'untilDate' && styles.segmentActive]}
           onPress={() => setDurationMode('untilDate')}
         >
-          <Text style={durationMode === 'untilDate' && styles.segmentTextActive}>
+          <Text style={[styles.segmentText, durationMode === 'untilDate' && styles.segmentTextActive]}>
             Hasta una fecha
           </Text>
         </Pressable>
@@ -72,7 +75,7 @@ export default function AddHabitScreen() {
       {durationMode === 'untilDate' && (
         <>
           <Pressable style={styles.dateButton} onPress={() => setShowDatePicker(true)}>
-            <Text>{endDate.toISOString().slice(0, 10)}</Text>
+            <Text style={styles.dateButtonText}>{toDateString(endDate)}</Text>
           </Pressable>
           {showDatePicker && (
             <DateTimePicker
@@ -80,7 +83,7 @@ export default function AddHabitScreen() {
               mode="date"
               minimumDate={new Date()}
               onChange={(_, selectedDate) => {
-                setShowDatePicker(Platform.OS === 'ios'); // en iOS el picker es inline, en Android es modal y se cierra solo
+                setShowDatePicker(Platform.OS === 'ios');
                 if (selectedDate) setEndDate(selectedDate);
               }}
             />
@@ -93,42 +96,54 @@ export default function AddHabitScreen() {
         onPress={handleSave}
         disabled={!name.trim() || saving}
       >
-        <Text style={styles.saveButtonText}>{saving ? 'Saving...' : 'Save habit'}</Text>
+        <Text style={styles.saveButtonText}>{saving ? 'Guardando...' : 'Guardar hábito'}</Text>
       </Pressable>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, paddingTop: 20 },
-  label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 16 },
-  input: { borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 12, fontSize: 16 },
+  container: { flex: 1, backgroundColor: colors.background, padding: 20, paddingTop: 20 },
+  label: { fontSize: 14, fontWeight: '600', marginBottom: 6, marginTop: 16, color: colors.textPrimary },
+  input: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    padding: 12,
+    fontSize: 16,
+    color: colors.textPrimary,
+    backgroundColor: colors.card,
+  },
   multiline: { height: 80, textAlignVertical: 'top' },
   segmentRow: { flexDirection: 'row', gap: 8 },
   segment: {
     flex: 1,
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 10,
     alignItems: 'center',
+    backgroundColor: colors.card,
   },
-  segmentActive: { backgroundColor: '#4CAF50', borderColor: '#4CAF50' },
-  segmentTextActive: { color: 'white', fontWeight: '600' },
+  segmentText: { color: colors.textPrimary },
+  segmentActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  segmentTextActive: { color: '#fff', fontWeight: '600' },
   dateButton: {
     borderWidth: 1,
-    borderColor: '#ccc',
+    borderColor: colors.border,
     borderRadius: 8,
     padding: 12,
     marginTop: 8,
+    backgroundColor: colors.card,
   },
+  dateButtonText: { color: colors.textPrimary },
   saveButton: {
-    backgroundColor: '#4CAF50',
+    backgroundColor: colors.primary,
     borderRadius: 8,
     padding: 14,
     alignItems: 'center',
     marginTop: 32,
   },
-  saveButtonDisabled: { backgroundColor: '#aaa' },
-  saveButtonText: { color: 'white', fontSize: 16, fontWeight: '600' },
+  saveButtonDisabled: { backgroundColor: colors.statusEmpty },
+  saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

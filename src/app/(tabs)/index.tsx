@@ -1,17 +1,13 @@
 // src/app/(tabs)/index.tsx
-import { useState, useEffect, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { useState, useCallback } from 'react';
+import { View, Text, FlatList, Pressable, StyleSheet, Alert } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getHabitsWithStatusForDate, toggleHabitRecord, HabitWithStatus } from '../../db/queries';
-import { router } from 'expo-router';
-import { Alert } from 'react-native';
-import { completeHabit } from '../../db/queries';
+import { getHabitsWithStatusForDate, toggleHabitRecord, completeHabit, HabitWithStatus } from '../../db/queries';
+import { colors } from '../../constants/colors';
+import { getTodayString } from '../../utils/date';
 
-function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
-}
 
 function formatDisplayDate(date: Date): string {
   return date.toLocaleDateString('es-MX', {
@@ -34,22 +30,22 @@ export default function IndexScreen() {
   }, [db, today]);
 
   function handleLongPress(habit: HabitWithStatus) {
-  Alert.alert(
-    'Completar hábito',
-    `"${habit.name}" ya no aparecerá en tu lista diaria, pero conservarás todo su historial.`,
-    [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Completar',
-        style: 'destructive',
-        onPress: async () => {
-          await completeHabit(db, habit.id, today);
-          loadHabits();
+    Alert.alert(
+      'Completar hábito',
+      `"${habit.name}" ya no aparecerá en tu lista diaria, pero conservarás todo su historial.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Completar',
+          style: 'destructive',
+          onPress: async () => {
+            await completeHabit(db, habit.id, today);
+            loadHabits();
+          },
         },
-      },
-    ]
-  );
-}
+      ]
+    );
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -60,8 +56,6 @@ export default function IndexScreen() {
   async function handleToggle(habit: HabitWithStatus) {
     const newValue = !habit.completed;
 
-    // actualiza el estado local de inmediato (optimistic update),
-    // así el checkbox responde al instante sin esperar la escritura en disco
     setHabits((prev) =>
       prev.map((h) => (h.id === habit.id ? { ...h, completed: newValue } : h))
     );
@@ -72,19 +66,20 @@ export default function IndexScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Cargando...</Text>
+        <Text style={styles.loadingText}>Cargando...</Text>
       </View>
     );
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.date}>{formatDisplayDate(new Date())}</Text>
+      <View style={styles.header}>
+        <Text style={styles.date}>{formatDisplayDate(new Date())}</Text>
+        <Pressable onPress={() => router.push('/add-habit')}>
+          <Ionicons name="add-circle" size={32} color={colors.primary} />
+        </Pressable>
+      </View>
 
-      <Pressable style={styles.addButton} onPress={() => router.push('/add-habit')}>
-        <Ionicons name="add-circle" size={32} color="#4CAF50" />
-      </Pressable>
-      
       <FlatList
         data={habits}
         keyExtractor={(item) => String(item.id)}
@@ -93,19 +88,17 @@ export default function IndexScreen() {
           <Text style={styles.empty}>Aún no tienes hábitos. Agrega el primero.</Text>
         }
         renderItem={({ item }) => (
-          <Pressable 
-            style={styles.habitRow} 
+          <Pressable
+            style={styles.habitRow}
             onPress={() => handleToggle(item)}
             onLongPress={() => handleLongPress(item)}
           >
             <Ionicons
               name={item.completed ? 'checkbox' : 'square-outline'}
               size={24}
-              color={item.completed ? '#4CAF50' : '#888'}
+              color={item.completed ? colors.primary : colors.textSecondary}
             />
-            <Text
-              style={[styles.habitName, item.completed && styles.habitNameDone]}
-            >
+            <Text style={[styles.habitName, item.completed && styles.habitNameDone]}>
               {item.name}
             </Text>
           </Pressable>
@@ -116,17 +109,21 @@ export default function IndexScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
-  date: {
-    fontSize: 20,
-    fontWeight: '600',
-    textTransform: 'capitalize',
-    marginBottom: 20,
+  container: { flex: 1, backgroundColor: colors.background },
+  loadingText: { color: colors.textPrimary, textAlign: 'center', marginTop: 100 },
+  header: {
+    backgroundColor: colors.surface,
+    paddingTop: 60,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
-  list: { gap: 12 },
+  date: { fontSize: 20, fontWeight: '600', textTransform: 'capitalize', color: colors.textPrimary },
+  list: { gap: 12, paddingHorizontal: 20, paddingTop: 16 },
   habitRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  habitName: { fontSize: 16 },
-  habitNameDone: { textDecorationLine: 'line-through', color: '#888' },
-  empty: { color: '#888', marginTop: 40, textAlign: 'center' },
-  addButton: { position: 'absolute', top: 55, right: 20, zIndex: 1 },
+  habitName: { fontSize: 16, color: colors.textPrimary },
+  habitNameDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
+  empty: { color: colors.textSecondary, marginTop: 40, textAlign: 'center' },
 });

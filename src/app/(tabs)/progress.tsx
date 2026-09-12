@@ -1,6 +1,6 @@
 // src/app/(tabs)/progress.tsx
 import { useState, useCallback } from 'react';
-import { View, Text, FlatList, StyleSheet } from 'react-native';
+import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
@@ -11,15 +11,14 @@ import {
   getMonthCompletionRate,
   Habit,
 } from '../../db/queries';
+import { colors } from '../../constants/colors';
+import { getTodayString } from '../../utils/date';
 
 interface HabitStreak {
   id: number;
   name: string;
   streak: number;
-}
-
-function getTodayString(): string {
-  return new Date().toISOString().slice(0, 10);
+  isActive: boolean;
 }
 
 function CompletionRing({ percentage }: { percentage: number }) {
@@ -36,7 +35,7 @@ function CompletionRing({ percentage }: { percentage: number }) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#e0e0e0"
+          stroke={colors.statusEmpty}
           strokeWidth={strokeWidth}
           fill="none"
         />
@@ -44,7 +43,7 @@ function CompletionRing({ percentage }: { percentage: number }) {
           cx={size / 2}
           cy={size / 2}
           r={radius}
-          stroke="#4CAF50"
+          stroke={colors.primary}
           strokeWidth={strokeWidth}
           fill="none"
           strokeDasharray={circumference}
@@ -54,7 +53,7 @@ function CompletionRing({ percentage }: { percentage: number }) {
           origin={`${size / 2}, ${size / 2}`}
         />
       </Svg>
-      <View style={StyleSheet.absoluteFillObject}>
+      <View style={StyleSheet.absoluteFill}>
         <View style={styles.ringCenter}>
           <Text style={styles.ringPercentage}>{percentage}%</Text>
           <Text style={styles.ringLabel}>completado</Text>
@@ -64,11 +63,23 @@ function CompletionRing({ percentage }: { percentage: number }) {
   );
 }
 
+function HabitStreakRow({ habit }: { habit: HabitStreak }) {
+  return (
+    <View style={styles.habitStreakRow}>
+      <Text style={styles.habitStreakName}>{habit.name}</Text>
+      <Text style={styles.habitStreakValue}>
+        {habit.streak} {habit.streak === 1 ? 'día' : 'días'}
+      </Text>
+    </View>
+  );
+}
+
 export default function ProgressScreen() {
   const db = useSQLiteContext();
   const [totalStreak, setTotalStreak] = useState(0);
   const [completionRate, setCompletionRate] = useState(0);
-  const [habitStreaks, setHabitStreaks] = useState<HabitStreak[]>([]);
+  const [activeHabits, setActiveHabits] = useState<HabitStreak[]>([]);
+  const [completedHabits, setCompletedHabits] = useState<HabitStreak[]>([]);
   const [loading, setLoading] = useState(true);
 
   const loadProgress = useCallback(async () => {
@@ -81,17 +92,23 @@ export default function ProgressScreen() {
       getAllHabits(db),
     ]);
 
-    const streaksPerHabit = await Promise.all(
+    const streaksPerHabit: HabitStreak[] = await Promise.all(
       habits.map(async (habit: Habit) => ({
         id: habit.id,
         name: habit.name,
         streak: await getHabitStreak(db, habit.id, today),
+        isActive: !habit.end_date || habit.end_date >= today,
       }))
     );
 
     setTotalStreak(streak);
     setCompletionRate(rate);
-    setHabitStreaks(streaksPerHabit.sort((a, b) => b.streak - a.streak));
+    setActiveHabits(
+      streaksPerHabit.filter((h) => h.isActive).sort((a, b) => b.streak - a.streak)
+    );
+    setCompletedHabits(
+      streaksPerHabit.filter((h) => !h.isActive).sort((a, b) => b.streak - a.streak)
+    );
     setLoading(false);
   }, [db]);
 
@@ -104,13 +121,13 @@ export default function ProgressScreen() {
   if (loading) {
     return (
       <View style={styles.container}>
-        <Text>Cargando...</Text>
+        <Text style={styles.loadingText}>Cargando...</Text>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
       <Text style={styles.streakLabel}>
         Racha {totalStreak} {totalStreak === 1 ? 'día' : 'días'}
       </Text>
@@ -121,45 +138,45 @@ export default function ProgressScreen() {
 
       <Text style={styles.encouragement}>¡Sigue así!</Text>
 
-      <Text style={styles.sectionTitle}>Rachas por hábito</Text>
-      <FlatList
-        data={habitStreaks}
-        keyExtractor={(item) => String(item.id)}
-        contentContainerStyle={styles.list}
-        ListEmptyComponent={
-          <Text style={styles.empty}>Aún no hay hábitos para mostrar rachas.</Text>
-        }
-        renderItem={({ item }) => (
-          <View style={styles.habitStreakRow}>
-            <Text style={styles.habitStreakName}>{item.name}</Text>
-            <Text style={styles.habitStreakValue}>
-              {item.streak} {item.streak === 1 ? 'día' : 'días'}
-            </Text>
-          </View>
-        )}
-      />
-    </View>
+      <Text style={styles.sectionTitle}>Hábitos actuales</Text>
+      {activeHabits.length === 0 ? (
+        <Text style={styles.empty}>No tienes hábitos activos.</Text>
+      ) : (
+        activeHabits.map((habit) => <HabitStreakRow key={habit.id} habit={habit} />)
+      )}
+
+      {completedHabits.length > 0 && (
+        <>
+          <Text style={[styles.sectionTitle, styles.completedTitle]}>Hábitos completados</Text>
+          {completedHabits.map((habit) => (
+            <HabitStreakRow key={habit.id} habit={habit} />
+          ))}
+        </>
+      )}
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, paddingTop: 60, paddingHorizontal: 20 },
-  streakLabel: { fontSize: 20, fontWeight: '600', textAlign: 'center', marginBottom: 20 },
+  container: { flex: 1, backgroundColor: colors.background, paddingHorizontal: 20 },
+  loadingText: { color: colors.textPrimary, textAlign: 'center', marginTop: 100 },
+  scrollContent: { paddingTop: 60, paddingBottom: 40 },
+  streakLabel: { fontSize: 20, fontWeight: '600', textAlign: 'center', marginBottom: 20, color: colors.textPrimary },
   ringWrapper: { alignItems: 'center', marginBottom: 12 },
   ringCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  ringPercentage: { fontSize: 28, fontWeight: '700' },
-  ringLabel: { fontSize: 13, color: '#888' },
-  encouragement: { textAlign: 'center', fontSize: 16, color: '#4CAF50', marginBottom: 24 },
-  sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: '#555' },
-  list: { gap: 10 },
+  ringPercentage: { fontSize: 28, fontWeight: '700', color: colors.textPrimary },
+  ringLabel: { fontSize: 13, color: colors.textSecondary },
+  encouragement: { textAlign: 'center', fontSize: 16, color: colors.primary, marginBottom: 24 },
+  sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: colors.textSecondary },
+  completedTitle: { marginTop: 20 },
   habitStreakRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: colors.border,
   },
-  habitStreakName: { fontSize: 15 },
-  habitStreakValue: { fontSize: 15, fontWeight: '600', color: '#4CAF50' },
-  empty: { color: '#888', marginTop: 20, textAlign: 'center' },
+  habitStreakName: { fontSize: 15, color: colors.textPrimary },
+  habitStreakValue: { fontSize: 15, fontWeight: '600', color: colors.primary },
+  empty: { color: colors.textSecondary, marginTop: 4, marginBottom: 12 },
 });
