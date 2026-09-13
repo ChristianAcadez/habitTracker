@@ -25,6 +25,15 @@ export default function RootLayout() {
               headerTintColor: colors.textPrimary,
             }}
           />
+          <Stack.Screen
+            name="edit-habit/[id]"
+            options={{
+              presentation: 'modal',
+              title: 'Editar hábito',
+              headerStyle: { backgroundColor: colors.surface },
+              headerTintColor: colors.textPrimary,
+            }}
+          />
         </Stack>
       </ThemeProvider>
     </SQLiteProvider>

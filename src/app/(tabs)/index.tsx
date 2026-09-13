@@ -47,6 +47,41 @@ export default function IndexScreen() {
     );
   }
 
+  function handleOptionsPress(habit: HabitWithStatus) {
+    Alert.alert(
+      habit.name,
+      '¿Qué quieres hacer con este hábito?',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Editar',
+          onPress: () => router.push(`/edit-habit/${habit.id}`),
+        },
+        {
+          text: 'Completar',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Completar hábito',
+              `"${habit.name}" ya no aparecerá en tu lista diaria, pero conservarás todo su historial.`,
+              [
+                { text: 'Cancelar', style: 'cancel' },
+                {
+                  text: 'Completar',
+                  style: 'destructive',
+                  onPress: async () => {
+                    await completeHabit(db, habit.id, today);
+                    loadHabits();
+                  },
+                },
+              ]
+            );
+          },
+        },
+      ]
+    );
+  }
+
   useFocusEffect(
     useCallback(() => {
       loadHabits();
@@ -88,20 +123,29 @@ export default function IndexScreen() {
           <Text style={styles.empty}>Aún no tienes hábitos. Agrega el primero.</Text>
         }
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.habitRow}
-            onPress={() => handleToggle(item)}
-            onLongPress={() => handleLongPress(item)}
-          >
-            <Ionicons
-              name={item.completed ? 'checkbox' : 'square-outline'}
-              size={24}
-              color={item.completed ? colors.primary : colors.textSecondary}
-            />
-            <Text style={[styles.habitName, item.completed && styles.habitNameDone]}>
-              {item.name}
-            </Text>
-          </Pressable>
+          <View style={styles.habitRow}>
+            <Pressable
+              style={styles.habitMain}
+              onPress={() => handleToggle(item)}
+              onLongPress={() => handleLongPress(item)}
+            >
+              <Ionicons
+                name={item.completed ? 'checkbox' : 'square-outline'}
+                size={24}
+                color={item.completed ? colors.primary : colors.textSecondary}
+              />
+              <Text style={[styles.habitName, item.completed && styles.habitNameDone]}>
+                {item.name}
+              </Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.editButton}
+              onPress={() => handleOptionsPress(item)}
+            >
+              <Ionicons name="ellipsis-vertical" size={18} color={colors.textSecondary} />
+            </Pressable>
+          </View>
         )}
       />
     </View>
@@ -122,8 +166,10 @@ const styles = StyleSheet.create({
   },
   date: { fontSize: 20, fontWeight: '600', textTransform: 'capitalize', color: colors.textPrimary },
   list: { gap: 12, paddingHorizontal: 20, paddingTop: 16 },
-  habitRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   habitName: { fontSize: 16, color: colors.textPrimary },
   habitNameDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
   empty: { color: colors.textSecondary, marginTop: 40, textAlign: 'center' },
+  habitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  habitMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
+  editButton: { padding: 6 },
 });

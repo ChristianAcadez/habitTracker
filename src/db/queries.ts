@@ -240,3 +240,27 @@ export async function getMonthCompletionRate(
   if (!row || !row.total_active) return 0;
   return Math.round((row.total_completed / row.total_active) * 100);
 }
+
+export async function getHabitById(
+  db: SQLiteDatabase,
+  habitId: number
+): Promise<Habit | null> {
+  const row = await db.getFirstAsync<Habit>(
+    `SELECT * FROM habits WHERE id = ?`,
+    [habitId]
+  );
+  return row ?? null;
+}
+
+export async function updateHabit(
+  db: SQLiteDatabase,
+  habitId: number,
+  name: string,
+  description: string | null,
+  endDate: string | null
+) {
+  await db.runAsync(
+    `UPDATE habits SET name = ?, description = ?, end_date = ? WHERE id = ?`,
+    [name, description, endDate, habitId]
+  );
+}
