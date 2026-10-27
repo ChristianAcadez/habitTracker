@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { getHabitsWithStatusForDate, toggleHabitRecord, completeHabit, HabitWithStatus } from '../../db/queries';
 import { colors } from '../../constants/colors';
 import { getTodayString } from '../../utils/date';
+import { useToday } from '../../hooks/useToday';
 
 
 function formatDisplayDate(date: Date): string {
@@ -21,7 +22,7 @@ export default function IndexScreen() {
   const db = useSQLiteContext();
   const [habits, setHabits] = useState<HabitWithStatus[]>([]);
   const [loading, setLoading] = useState(true);
-  const today = getTodayString();
+  const today = useToday();
 
   const loadHabits = useCallback(async () => {
     const result = await getHabitsWithStatusForDate(db, today);
@@ -109,7 +110,7 @@ export default function IndexScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.date}>{formatDisplayDate(new Date())}</Text>
+        <Text style={styles.date}>{formatDisplayDate(new Date(today + 'T00:00:00'))}</Text>
         <Pressable onPress={() => router.push('/add-habit')}>
           <Ionicons name="add-circle" size={32} color={colors.primary} />
         </Pressable>

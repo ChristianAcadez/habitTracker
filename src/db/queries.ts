@@ -220,8 +220,11 @@ export async function getTotalStreak(db: SQLiteDatabase, today: string): Promise
     );
 
     if (counts && counts.active > 0) {
-      if (counts.completed < counts.active) break;
-      streak++;
+      if (counts.completed >= counts.active) {
+        streak++;
+      } else if (cursor !== today) {
+        break;
+      }
     }
     cursor = shiftDate(cursor, -1);
   }
@@ -250,8 +253,12 @@ export async function getHabitStreak(
         `SELECT completed FROM records WHERE habit_id = ? AND date = ?`,
         [habitId, cursor]
       );
-      if (!row || row.completed !== 1) break;
-      streak++;
+
+      if (row?.completed === 1) {
+        streak++;
+      } else if (cursor !== today) {
+        break;
+      }
     }
     cursor = shiftDate(cursor, -1);
   }

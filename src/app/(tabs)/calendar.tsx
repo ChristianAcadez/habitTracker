@@ -4,6 +4,7 @@ import { View, Text, Pressable, StyleSheet, Modal } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useToday } from '../../hooks/useToday';
 import {
   getMonthSummary,
   getHabitsWithStatusForDate,
@@ -13,7 +14,6 @@ import {
   HabitWithStatus,
 } from '../../db/queries';
 import { colors } from '../../constants/colors';
-import { getTodayString } from '../../utils/date';
 
 const STATUS_COLORS: Record<DayStatus, string> = {
   complete: colors.statusComplete,
@@ -51,6 +51,7 @@ export default function CalendarScreen() {
 
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [dayHabits, setDayHabits] = useState<HabitWithStatus[]>([]);
+  const todayString = useToday();
 
   useEffect(() => {
     if (!selectedDate) return;
@@ -66,11 +67,11 @@ export default function CalendarScreen() {
   }
 
   const loadMonth = useCallback(async () => {
-    const result = await getMonthSummary(db, year, month, getTodayString());
+    const result = await getMonthSummary(db, year, month, todayString);
     setSummaries(result);
-  }, [db, year, month]);
+  }, [db, year, month, todayString]);
 
-  const isFutureDate = selectedDate !== null && selectedDate > getTodayString();
+  const isFutureDate = selectedDate !== null && selectedDate > todayString;
 
   async function handleToggleHabit(habit: HabitWithStatus) {
     if (!selectedDate || isFutureDate) return;

@@ -12,7 +12,7 @@ import {
   Habit,
 } from '../../db/queries';
 import { colors } from '../../constants/colors';
-import { getTodayString } from '../../utils/date';
+import { useToday } from '../../hooks/useToday';
 
 interface HabitStreak {
   id: number;
@@ -81,10 +81,10 @@ export default function ProgressScreen() {
   const [activeHabits, setActiveHabits] = useState<HabitStreak[]>([]);
   const [completedHabits, setCompletedHabits] = useState<HabitStreak[]>([]);
   const [loading, setLoading] = useState(true);
+  const today = useToday();
 
   const loadProgress = useCallback(async () => {
-    const today = getTodayString();
-    const now = new Date();
+    const now = new Date(today + 'T00:00:00');
 
     const [streak, rate, habits] = await Promise.all([
       getTotalStreak(db, today),
@@ -110,7 +110,7 @@ export default function ProgressScreen() {
       streaksPerHabit.filter((h) => !h.isActive).sort((a, b) => b.streak - a.streak)
     );
     setLoading(false);
-  }, [db]);
+  }, [db, today]);
 
   useFocusEffect(
     useCallback(() => {
