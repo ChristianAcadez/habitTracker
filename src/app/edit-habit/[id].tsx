@@ -7,6 +7,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { getHabitById, updateHabit } from '../../db/queries';
 import { toDateString } from '../../utils/date';
 import { colors } from '../../constants/colors';
+import WeekdayPicker from '../../components/WeekdayPicker';
+import { ALL_WEEKDAYS, parseWeekdays } from '../../utils/weekdays';
 
 type DurationMode = 'forever' | 'untilDate';
 
@@ -22,6 +24,7 @@ export default function EditHabitScreen() {
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
 
   useEffect(() => {
     getHabitById(db, habitId).then((habit) => {
@@ -35,6 +38,7 @@ export default function EditHabitScreen() {
         setDurationMode('untilDate');
         setEndDate(new Date(habit.end_date + 'T00:00:00'));
       }
+      setWeekdays(parseWeekdays(habit.active_weekdays));
       setLoading(false);
     });
   }, [db, habitId]);
@@ -46,7 +50,7 @@ export default function EditHabitScreen() {
     setSaving(true);
     const endDateStr = durationMode === 'untilDate' ? toDateString(endDate) : null;
 
-    await updateHabit(db, habitId, trimmedName, description.trim() || null, endDateStr);
+    await updateHabit(db, habitId, trimmedName, description.trim() || null, weekdays, endDateStr);
     router.back();
   }
 
@@ -78,6 +82,11 @@ export default function EditHabitScreen() {
         multiline
       />
 
+      <Text style={styles.label}>Días de la semana</Text>
+      <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+      <Text style={styles.hint}>
+        Cambiar los días también afecta cómo se calcula tu historial pasado.
+      </Text>
       <Text style={styles.label}>Duración</Text>
       <View style={styles.segmentRow}>
         <Pressable
@@ -170,6 +179,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 32,
   },
+  hint: { fontSize: 12, color: colors.textSecondary, marginTop: 8 },
   saveButtonDisabled: { backgroundColor: colors.statusEmpty },
   saveButtonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
 });

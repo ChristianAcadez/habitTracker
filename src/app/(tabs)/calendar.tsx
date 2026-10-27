@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import {
   getMonthSummary,
   getHabitsWithStatusForDate,
+  toggleHabitRecord,
   DaySummary,
   DayStatus,
   HabitWithStatus,
@@ -68,6 +69,20 @@ export default function CalendarScreen() {
     const result = await getMonthSummary(db, year, month, getTodayString());
     setSummaries(result);
   }, [db, year, month]);
+
+  const isFutureDate = selectedDate !== null && selectedDate > getTodayString();
+
+  async function handleToggleHabit(habit: HabitWithStatus) {
+    if (!selectedDate || isFutureDate) return;
+    const newValue = !habit.completed;
+
+    setDayHabits((prev) =>
+      prev.map((h) => (h.id === habit.id ? { ...h, completed: newValue } : h))
+    );
+
+    await toggleHabitRecord(db, habit.id, habit.name, selectedDate, newValue);
+    loadMonth();
+  }
 
   useFocusEffect(
     useCallback(() => {
@@ -155,18 +170,42 @@ export default function CalendarScreen() {
               {selectedDate && formatModalDate(selectedDate)}
             </Text>
 
+            {dayHabits.length > 0 && (
+              <Text style={styles.modalHint}>
+                {isFutureDate
+                  ? 'Los días futuros aún no se pueden marcar.'
+                  : 'Toca un hábito para corregirlo.'}
+              </Text>
+            )}
+
             {dayHabits.length === 0 ? (
               <Text style={styles.modalEmpty}>No había hábitos activos ese día.</Text>
             ) : (
               dayHabits.map((habit) => (
-                <View key={habit.id} style={styles.modalHabitRow}>
+                <Pressable
+                  key={habit.id}
+                  style={styles.modalHabitRow}
+                  onPress={() => handleToggleHabit(habit)}
+                  disabled={isFutureDate}
+                >
                   <Ionicons
-                    name={habit.completed ? 'checkmark-circle' : 'close-circle'}
+                    name={isFutureDate ? 'ellipse-outline' : habit.completed ? 'checkmark-circle' : 'close-circle'}
                     size={20}
-                    color={habit.completed ? colors.statusComplete : colors.statusNone}
+                    color={
+                      isFutureDate
+                        ? colors.textSecondary
+                        : habit.completed
+                          ? colors.statusComplete
+                          : colors.statusNone
+                    }
                   />
-                  <Text style={styles.modalHabitName}>{habit.name}</Text>
-                </View>
+                  <View style={styles.modalHabitTexts}>
+                    <Text style={styles.modalHabitName}>{habit.name}</Text>
+                    {habit.description ? (
+                      <Text style={styles.modalHabitDescription}>{habit.description}</Text>
+                    ) : null}
+                  </View>
+                </Pressable>
               ))
             )}
 
@@ -227,7 +266,6 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
   },
   modalEmpty: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 20 },
-  modalHabitRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 8 },
   modalHabitName: { fontSize: 15, color: colors.textPrimary },
   modalCloseButton: {
     marginTop: 16,
@@ -237,4 +275,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   modalCloseText: { fontWeight: '600', color: colors.textPrimary },
+  modalHabitRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, paddingVertical: 8 },
+  modalHabitTexts: { flex: 1 },
+  modalHabitDescription: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  modalHint: { fontSize: 12, color: colors.textSecondary, marginTop: -8, marginBottom: 12 },
 });

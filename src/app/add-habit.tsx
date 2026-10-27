@@ -7,6 +7,8 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { createHabit } from '../db/queries';
 import { toDateString } from '../utils/date';
 import { colors } from '../constants/colors';
+import WeekdayPicker from '../components/WeekdayPicker';
+import { ALL_WEEKDAYS } from '../utils/weekdays';
 
 type DurationMode = 'forever' | 'untilDate';
 
@@ -18,6 +20,7 @@ export default function AddHabitScreen() {
   const [endDate, setEndDate] = useState<Date>(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
 
   async function handleSave() {
     const trimmedName = name.trim();
@@ -26,7 +29,7 @@ export default function AddHabitScreen() {
     setSaving(true);
     const endDateStr = durationMode === 'untilDate' ? toDateString(endDate) : null;
 
-    await createHabit(db, trimmedName, description.trim() || null, 'daily', endDateStr);
+    await createHabit(db, trimmedName, description.trim() || null, weekdays, endDateStr);
     router.back();
   }
 
@@ -52,6 +55,8 @@ export default function AddHabitScreen() {
         multiline
       />
 
+      <Text style={styles.label}>Días de la semana</Text>
+      <WeekdayPicker value={weekdays} onChange={setWeekdays} />
       <Text style={styles.label}>Duración</Text>
       <View style={styles.segmentRow}>
         <Pressable

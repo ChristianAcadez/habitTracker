@@ -120,7 +120,7 @@ export default function IndexScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         ListEmptyComponent={
-          <Text style={styles.empty}>Aún no tienes hábitos. Agrega el primero.</Text>
+          <Text style={styles.empty}>No tienes hábitos programados para hoy.</Text>
         }
         renderItem={({ item }) => (
           <View style={styles.habitRow}>
@@ -134,9 +134,14 @@ export default function IndexScreen() {
                 size={24}
                 color={item.completed ? colors.primary : colors.textSecondary}
               />
-              <Text style={[styles.habitName, item.completed && styles.habitNameDone]}>
-                {item.name}
-              </Text>
+              <View style={styles.habitTexts}>
+                <Text style={[styles.habitName, item.completed && styles.habitNameDone]}>
+                  {item.name}
+                </Text>
+                {item.description ? (
+                  <Text style={styles.habitDescription}>{item.description}</Text>
+                ) : null}
+              </View>
             </Pressable>
 
             <Pressable
@@ -172,4 +177,6 @@ const styles = StyleSheet.create({
   habitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   habitMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
   editButton: { padding: 6 },
+  habitTexts: { flex: 1 },
+  habitDescription: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
 });
