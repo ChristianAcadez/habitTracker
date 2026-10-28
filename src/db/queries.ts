@@ -112,6 +112,13 @@ export async function getAllHabits(db: SQLiteDatabase): Promise<Habit[]> {
   return db.getAllAsync<Habit>(`SELECT * FROM habits ORDER BY created_at ASC`);
 }
 
+export async function deleteHabit(db: SQLiteDatabase, habitId: number) {
+  await db.withTransactionAsync(async () => {
+    await db.runAsync(`DELETE FROM records WHERE habit_id = ?`, [habitId]);
+    await db.runAsync(`DELETE FROM habits WHERE id = ?`, [habitId]);
+  });
+}
+
 // ---------- Calendario ----------
 
 export async function getMonthSummary(

@@ -1,14 +1,33 @@
 // src/app/(tabs)/index.tsx
-import { useState, useCallback } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, Alert } from 'react-native';
+import { useState, useCallback, useRef, useEffect } from 'react';
+import { View, Text, FlatList, Pressable, StyleSheet, Alert, Modal, Animated } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { getHabitsWithStatusForDate, toggleHabitRecord, completeHabit, HabitWithStatus } from '../../db/queries';
+import { getHabitsWithStatusForDate, toggleHabitRecord, completeHabit, HabitWithStatus, deleteHabit, getTotalStreak } from '../../db/queries';
 import { colors } from '../../constants/colors';
-import { getTodayString } from '../../utils/date';
 import { useToday } from '../../hooks/useToday';
 
+
+function ProgressBar({ progress }: { progress: number }) {
+  const animated = useRef(new Animated.Value(progress)).current;
+
+  useEffect(() => {
+    Animated.timing(animated, {
+      toValue: progress,
+      duration: 250,
+      useNativeDriver: false, // el ancho no se puede animar con el driver nativo
+    }).start();
+  }, [progress, animated]);
+
+  const width = animated.interpolate({ inputRange: [0, 1], outputRange: ['0%', '100%'] });
+
+  return (
+    <View style={styles.progressTrack}>
+      <Animated.View style={[styles.progressFill, { width }]} />
+    </View>
+  );
+}
 
 function formatDisplayDate(date: Date): string {
   return date.toLocaleDateString('es-MX', {
@@ -24,9 +43,15 @@ export default function IndexScreen() {
   const [loading, setLoading] = useState(true);
   const today = useToday();
 
+  const [streak, setStreak] = useState(0);
+
   const loadHabits = useCallback(async () => {
-    const result = await getHabitsWithStatusForDate(db, today);
+    const [result, currentStreak] = await Promise.all([
+      getHabitsWithStatusForDate(db, today),
+      getTotalStreak(db, today),
+    ]);
     setHabits(result);
+    setStreak(currentStreak);
     setLoading(false);
   }, [db, today]);
 
@@ -48,35 +73,35 @@ export default function IndexScreen() {
     );
   }
 
-  function handleOptionsPress(habit: HabitWithStatus) {
+  const [optionsHabit, setOptionsHabit] = useState<HabitWithStatus | null>(null);
+
+  function closeOptions() {
+    setOptionsHabit(null);
+  }
+
+  function handleEdit(habit: HabitWithStatus) {
+    closeOptions();
+    router.push(`/edit-habit/${habit.id}`);
+  }
+
+  function handleComplete(habit: HabitWithStatus) {
+    closeOptions();
+    handleLongPress(habit); // reutiliza la confirmación de "Completar" que ya tienes
+  }
+
+  function handleDelete(habit: HabitWithStatus) {
+    closeOptions();
     Alert.alert(
-      habit.name,
-      '¿Qué quieres hacer con este hábito?',
+      'Eliminar hábito',
+      `Se borrará "${habit.name}" y todo su historial. Esta acción no se puede deshacer.\n\nSi solo quieres dejar de verlo en tu lista diaria, usa "Completar".`,
       [
         { text: 'Cancelar', style: 'cancel' },
         {
-          text: 'Editar',
-          onPress: () => router.push(`/edit-habit/${habit.id}`),
-        },
-        {
-          text: 'Completar',
+          text: 'Eliminar',
           style: 'destructive',
-          onPress: () => {
-            Alert.alert(
-              'Completar hábito',
-              `"${habit.name}" ya no aparecerá en tu lista diaria, pero conservarás todo su historial.`,
-              [
-                { text: 'Cancelar', style: 'cancel' },
-                {
-                  text: 'Completar',
-                  style: 'destructive',
-                  onPress: async () => {
-                    await completeHabit(db, habit.id, today);
-                    loadHabits();
-                  },
-                },
-              ]
-            );
+          onPress: async () => {
+            await deleteHabit(db, habit.id);
+            loadHabits();
           },
         },
       ]
@@ -97,7 +122,13 @@ export default function IndexScreen() {
     );
 
     await toggleHabitRecord(db, habit.id, habit.name, today, newValue);
+    setStreak(await getTotalStreak(db, today));
   }
+
+  const completedCount = habits.filter((h) => h.completed).length;
+  const totalCount = habits.length;
+  const allDone = totalCount > 0 && completedCount === totalCount;
+  const progress = totalCount > 0 ? completedCount / totalCount : 0;
 
   if (loading) {
     return (
@@ -115,6 +146,27 @@ export default function IndexScreen() {
           <Ionicons name="add-circle" size={32} color={colors.primary} />
         </Pressable>
       </View>
+
+      {totalCount > 0 && (
+        <View style={styles.summaryCard}>
+          <View style={styles.summaryTop}>
+            <Text style={[styles.summaryText, allDone && styles.summaryTextDone]}>
+              {allDone ? '¡Todo completado hoy!' : `${completedCount} de ${totalCount} hoy`}
+            </Text>
+            <View style={styles.streakBadge}>
+              <Ionicons
+                name="flame"
+                size={18}
+                color={streak > 0 ? colors.primary : colors.textSecondary}
+              />
+              <Text style={styles.streakText}>
+                {streak} {streak === 1 ? 'día' : 'días'}
+              </Text>
+            </View>
+          </View>
+          <ProgressBar progress={progress} />
+        </View>
+      )}
 
       <FlatList
         data={habits}
@@ -145,15 +197,56 @@ export default function IndexScreen() {
               </View>
             </Pressable>
 
-            <Pressable
-              style={styles.editButton}
-              onPress={() => handleOptionsPress(item)}
-            >
+            <Pressable style={styles.editButton} onPress={() => setOptionsHabit(item)}>
               <Ionicons name="ellipsis-vertical" size={18} color={colors.textSecondary} />
             </Pressable>
           </View>
         )}
       />
+      <Modal
+        visible={optionsHabit !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={closeOptions}
+      >
+        <Pressable style={styles.sheetOverlay} onPress={closeOptions}>
+          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+            <Text style={styles.sheetTitle} numberOfLines={1}>
+              {optionsHabit?.name}
+            </Text>
+
+            <Pressable
+              style={styles.sheetRow}
+              onPress={() => optionsHabit && handleEdit(optionsHabit)}
+            >
+              <Ionicons name="pencil" size={20} color={colors.textPrimary} />
+              <Text style={styles.sheetRowText}>Editar</Text>
+            </Pressable>
+
+            <Pressable
+              style={styles.sheetRow}
+              onPress={() => optionsHabit && handleComplete(optionsHabit)}
+            >
+              <Ionicons name="checkmark-done" size={20} color={colors.textPrimary} />
+              <View>
+                <Text style={styles.sheetRowText}>Completar</Text>
+                <Text style={styles.sheetRowSub}>Deja de aparecer, conserva su historial</Text>
+              </View>
+            </Pressable>
+
+            <Pressable
+              style={styles.sheetRow}
+              onPress={() => optionsHabit && handleDelete(optionsHabit)}
+            >
+              <Ionicons name="trash-outline" size={20} color={colors.statusNone} />
+              <View>
+                <Text style={[styles.sheetRowText, { color: colors.statusNone }]}>Eliminar</Text>
+                <Text style={styles.sheetRowSub}>Borra el hábito y todo su historial</Text>
+              </View>
+            </Pressable>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -180,4 +273,40 @@ const styles = StyleSheet.create({
   editButton: { padding: 6 },
   habitTexts: { flex: 1 },
   habitDescription: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  sheet: {
+    backgroundColor: colors.card,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    padding: 20,
+    paddingBottom: 32,
+  },
+  sheetTitle: { fontSize: 16, fontWeight: '600', color: colors.textPrimary, marginBottom: 8 },
+  sheetRow: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14 },
+  sheetRowText: { fontSize: 16, color: colors.textPrimary },
+  sheetRowSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  summaryCard: {
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 20,
+    marginTop: 16,
+  },
+  summaryTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  summaryText: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
+  summaryTextDone: { color: colors.primary },
+  streakBadge: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  streakText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
+  progressTrack: {
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: colors.statusEmpty,
+    overflow: 'hidden',
+  },
+  progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.primary },
 });

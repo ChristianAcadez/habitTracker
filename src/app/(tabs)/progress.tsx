@@ -1,6 +1,5 @@
 // src/app/(tabs)/progress.tsx
 import { useState, useCallback } from 'react';
-import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
@@ -9,10 +8,13 @@ import {
   getHabitStreak,
   getAllHabits,
   getMonthCompletionRate,
+  deleteHabit,
   Habit,
 } from '../../db/queries';
 import { colors } from '../../constants/colors';
 import { useToday } from '../../hooks/useToday';
+import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface HabitStreak {
   id: number;
@@ -63,13 +65,20 @@ function CompletionRing({ percentage }: { percentage: number }) {
   );
 }
 
-function HabitStreakRow({ habit }: { habit: HabitStreak }) {
+function HabitStreakRow({ habit, onDelete }: { habit: HabitStreak; onDelete?: () => void }) {
   return (
     <View style={styles.habitStreakRow}>
       <Text style={styles.habitStreakName}>{habit.name}</Text>
-      <Text style={styles.habitStreakValue}>
-        {habit.streak} {habit.streak === 1 ? 'día' : 'días'}
-      </Text>
+      <View style={styles.habitStreakRight}>
+        <Text style={styles.habitStreakValue}>
+          {habit.streak} {habit.streak === 1 ? 'día' : 'días'}
+        </Text>
+        {onDelete && (
+          <Pressable onPress={onDelete} hitSlop={8}>
+            <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
+          </Pressable>
+        )}
+      </View>
     </View>
   );
 }
@@ -112,6 +121,24 @@ export default function ProgressScreen() {
     setLoading(false);
   }, [db, today]);
 
+  function confirmDelete(habit: HabitStreak) {
+    Alert.alert(
+      'Eliminar hábito',
+      `Se borrará "${habit.name}" y todo su historial. Esta acción no se puede deshacer.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            await deleteHabit(db, habit.id);
+            loadProgress();
+          },
+        },
+      ]
+    );
+  }
+
   useFocusEffect(
     useCallback(() => {
       loadProgress();
@@ -149,7 +176,7 @@ export default function ProgressScreen() {
         <>
           <Text style={[styles.sectionTitle, styles.completedTitle]}>Hábitos completados</Text>
           {completedHabits.map((habit) => (
-            <HabitStreakRow key={habit.id} habit={habit} />
+            <HabitStreakRow key={habit.id} habit={habit} onDelete={() => confirmDelete(habit)} />
           ))}
         </>
       )}
@@ -179,4 +206,5 @@ const styles = StyleSheet.create({
   habitStreakName: { fontSize: 15, color: colors.textPrimary },
   habitStreakValue: { fontSize: 15, fontWeight: '600', color: colors.primary },
   empty: { color: colors.textSecondary, marginTop: 4, marginBottom: 12 },
+  habitStreakRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
 });
