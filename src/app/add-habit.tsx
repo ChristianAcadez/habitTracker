@@ -9,6 +9,8 @@ import { toDateString } from '../utils/date';
 import { colors } from '../constants/colors';
 import WeekdayPicker from '../components/WeekdayPicker';
 import { ALL_WEEKDAYS } from '../utils/weekdays';
+import TimeOfDayPicker from '../components/TimeOfDayPicker';
+import { TimeOfDay } from '../constants/timeOfDay';
 
 type DurationMode = 'forever' | 'untilDate';
 
@@ -21,6 +23,7 @@ export default function AddHabitScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('anytime');
 
   async function handleSave() {
     const trimmedName = name.trim();
@@ -29,7 +32,7 @@ export default function AddHabitScreen() {
     setSaving(true);
     const endDateStr = durationMode === 'untilDate' ? toDateString(endDate) : null;
 
-    await createHabit(db, trimmedName, description.trim() || null, weekdays, endDateStr);
+    await createHabit(db, trimmedName, description.trim() || null, weekdays, timeOfDay, endDateStr);
     router.back();
   }
 
@@ -57,6 +60,8 @@ export default function AddHabitScreen() {
 
       <Text style={styles.label}>Días de la semana</Text>
       <WeekdayPicker value={weekdays} onChange={setWeekdays} />
+      <Text style={styles.label}>Momento del día</Text>
+      <TimeOfDayPicker value={timeOfDay} onChange={setTimeOfDay} />
       <Text style={styles.label}>Duración</Text>
       <View style={styles.segmentRow}>
         <Pressable

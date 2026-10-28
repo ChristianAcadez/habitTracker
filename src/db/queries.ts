@@ -1,12 +1,14 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 import { getTodayString, toDateString } from '../utils/date';
 import { parseWeekdays, serializeWeekdays } from '../utils/weekdays';
+import type { TimeOfDay } from '../constants/timeOfDay';
 
 export interface Habit {
   id: number;
   name: string;
   description: string | null;
-  active_weekdays: string; // ej. '1,3,5'
+  active_weekdays: string;
+  time_of_day: TimeOfDay;
   created_at: string;
   end_date: string | null;
 }
@@ -74,12 +76,13 @@ export async function createHabit(
   name: string,
   description: string | null,
   weekdays: number[],
+  timeOfDay: TimeOfDay,
   endDate: string | null
 ) {
   await db.runAsync(
-    `INSERT INTO habits (name, description, active_weekdays, created_at, end_date)
-     VALUES (?, ?, ?, ?, ?)`,
-    [name, description, serializeWeekdays(weekdays), getTodayString(), endDate]
+    `INSERT INTO habits (name, description, active_weekdays, time_of_day, created_at, end_date)
+     VALUES (?, ?, ?, ?, ?, ?)`,
+    [name, description, serializeWeekdays(weekdays), timeOfDay, getTodayString(), endDate]
   );
 }
 
@@ -89,13 +92,14 @@ export async function updateHabit(
   name: string,
   description: string | null,
   weekdays: number[],
+  timeOfDay: TimeOfDay,
   endDate: string | null
 ) {
   await db.runAsync(
     `UPDATE habits
-     SET name = ?, description = ?, active_weekdays = ?, end_date = ?
+     SET name = ?, description = ?, active_weekdays = ?, time_of_day = ?, end_date = ?
      WHERE id = ?`,
-    [name, description, serializeWeekdays(weekdays), endDate, habitId]
+    [name, description, serializeWeekdays(weekdays), timeOfDay, endDate, habitId]
   );
 }
 

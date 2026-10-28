@@ -9,6 +9,8 @@ import { toDateString } from '../../utils/date';
 import { colors } from '../../constants/colors';
 import WeekdayPicker from '../../components/WeekdayPicker';
 import { ALL_WEEKDAYS, parseWeekdays } from '../../utils/weekdays';
+import TimeOfDayPicker from '../../components/TimeOfDayPicker';
+import { TimeOfDay } from '../../constants/timeOfDay';
 
 type DurationMode = 'forever' | 'untilDate';
 
@@ -25,6 +27,7 @@ export default function EditHabitScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [saving, setSaving] = useState(false);
   const [weekdays, setWeekdays] = useState<number[]>(ALL_WEEKDAYS);
+  const [timeOfDay, setTimeOfDay] = useState<TimeOfDay>('anytime');
 
   useEffect(() => {
     getHabitById(db, habitId).then((habit) => {
@@ -39,6 +42,7 @@ export default function EditHabitScreen() {
         setEndDate(new Date(habit.end_date + 'T00:00:00'));
       }
       setWeekdays(parseWeekdays(habit.active_weekdays));
+      setTimeOfDay(habit.time_of_day);
       setLoading(false);
     });
   }, [db, habitId]);
@@ -50,7 +54,7 @@ export default function EditHabitScreen() {
     setSaving(true);
     const endDateStr = durationMode === 'untilDate' ? toDateString(endDate) : null;
 
-    await updateHabit(db, habitId, trimmedName, description.trim() || null, weekdays, endDateStr);
+    await updateHabit(db, habitId, trimmedName, description.trim() || null, weekdays, timeOfDay, endDateStr);
     router.back();
   }
 
@@ -87,6 +91,8 @@ export default function EditHabitScreen() {
       <Text style={styles.hint}>
         Cambiar los días también afecta cómo se calcula tu historial pasado.
       </Text>
+      <Text style={styles.label}>Momento del día</Text>
+      <TimeOfDayPicker value={timeOfDay} onChange={setTimeOfDay} />
       <Text style={styles.label}>Duración</Text>
       <View style={styles.segmentRow}>
         <Pressable

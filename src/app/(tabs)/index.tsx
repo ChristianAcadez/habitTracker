@@ -1,12 +1,13 @@
 // src/app/(tabs)/index.tsx
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet, Alert, Modal, Animated } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getHabitsWithStatusForDate, toggleHabitRecord, completeHabit, HabitWithStatus, deleteHabit, getTotalStreak } from '../../db/queries';
 import { colors } from '../../constants/colors';
 import { useToday } from '../../hooks/useToday';
+import { View, Text, SectionList, Pressable, StyleSheet, Alert, Modal, Animated } from 'react-native';
+import { TIME_OF_DAY_ORDER, TIME_OF_DAY_LABELS, TIME_OF_DAY_ICONS } from '../../constants/timeOfDay';
 
 
 function ProgressBar({ progress }: { progress: number }) {
@@ -130,6 +131,13 @@ export default function IndexScreen() {
   const allDone = totalCount > 0 && completedCount === totalCount;
   const progress = totalCount > 0 ? completedCount / totalCount : 0;
 
+  const sections = TIME_OF_DAY_ORDER.map((key) => ({
+    key,
+    data: habits.filter((h) => h.time_of_day === key),
+  })).filter((section) => section.data.length > 0);
+
+  const showSectionHeaders = !(sections.length === 1 && sections[0].key === 'anytime');
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -168,12 +176,27 @@ export default function IndexScreen() {
         </View>
       )}
 
-      <FlatList
-        data={habits}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
+        stickySectionHeadersEnabled={false}
         ListEmptyComponent={
           <Text style={styles.empty}>No tienes hábitos programados para hoy.</Text>
+        }
+        renderSectionHeader={
+          showSectionHeaders
+            ? ({ section }) => (
+              <View style={styles.sectionHeader}>
+                <Ionicons
+                  name={TIME_OF_DAY_ICONS[section.key]}
+                  size={16}
+                  color={colors.textSecondary}
+                />
+                <Text style={styles.sectionTitle}>{TIME_OF_DAY_LABELS[section.key]}</Text>
+              </View>
+            )
+            : undefined
         }
         renderItem={({ item }) => (
           <View style={styles.habitRow}>
@@ -309,4 +332,12 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   progressFill: { height: '100%', borderRadius: 4, backgroundColor: colors.primary },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 8 },
+  sectionTitle: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
 });

@@ -1,6 +1,6 @@
 import type { SQLiteDatabase } from 'expo-sqlite';
 
-const DATABASE_VERSION = 2;
+const DATABASE_VERSION = 3;
 
 export async function initDatabase(db: SQLiteDatabase) {
   await db.execAsync(`PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;`);
@@ -38,6 +38,12 @@ export async function initDatabase(db: SQLiteDatabase) {
     await db.execAsync(`
       ALTER TABLE habits ADD COLUMN active_weekdays TEXT NOT NULL DEFAULT '0,1,2,3,4,5,6';
     `);
+  }
+
+  if (version < 3) {
+    await db.execAsync(`
+    ALTER TABLE habits ADD COLUMN time_of_day TEXT NOT NULL DEFAULT 'anytime';
+  `);
   }
 
   await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION};`);
