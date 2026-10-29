@@ -34,6 +34,14 @@ export default function RootLayout() {
               headerTintColor: colors.textPrimary,
             }}
           />
+          <Stack.Screen
+            name="habit/[id]"
+            options={{
+              title: 'Detalle del hábito',
+              headerStyle: { backgroundColor: colors.surface },
+              headerTintColor: colors.textPrimary,
+            }}
+          />
         </Stack>
       </ThemeProvider>
     </SQLiteProvider>

@@ -24,6 +24,11 @@ export interface DaySummary {
   status: DayStatus;
 }
 
+export interface HabitDay {
+  date: string;
+  completed: boolean;
+}
+
 // Fragmento SQL: el hábito `alias` está programado en la fecha que da `dateExpr`
 function isScheduledOn(dateExpr: string, alias: string = 'h'): string {
   return `${alias}.created_at <= ${dateExpr}
@@ -243,6 +248,29 @@ export async function getTotalStreak(db: SQLiteDatabase, today: string): Promise
   return streak;
 }
 
+export async function getHabitHistory(
+  db: SQLiteDatabase,
+  habitId: number,
+  today: string
+): Promise<HabitDay[]> {
+  const rows = await db.getAllAsync<{ date: string; completed: number }>(
+    `WITH RECURSIVE dates(date) AS (
+       SELECT date(created_at) FROM habits WHERE id = ?
+       UNION ALL
+       SELECT date(date, '+1 day') FROM dates WHERE date < date(?)
+     )
+     SELECT d.date, COALESCE(r.completed, 0) AS completed
+     FROM dates d
+     JOIN habits h ON h.id = ? AND ${isScheduledOn('d.date')}
+     LEFT JOIN records r ON r.habit_id = h.id AND r.date = d.date
+     WHERE d.date <= ?
+     ORDER BY d.date ASC`,
+    [habitId, today, habitId, today]
+  );
+
+  return rows.map((row) => ({ date: row.date, completed: row.completed === 1 }));
+}
+
 // Racha por hábito: solo cuentan los días en que ese hábito estaba programado
 export async function getHabitStreak(
   db: SQLiteDatabase,
@@ -254,7 +282,7 @@ export async function getHabitStreak(
 
   const weekdays = parseWeekdays(habit.active_weekdays);
   let streak = 0;
-  let cursor = today;
+  let cursor = habit.end_date && habit.end_date < today ? habit.end_date : today;
 
   while (cursor >= habit.created_at) {
     const weekday = new Date(cursor + 'T00:00:00').getDay();

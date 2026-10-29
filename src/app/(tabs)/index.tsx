@@ -85,6 +85,11 @@ export default function IndexScreen() {
     router.push(`/edit-habit/${habit.id}`);
   }
 
+  function handleDetail(habit: HabitWithStatus) {
+    closeOptions();
+    router.push(`/habit/${habit.id}`);
+  }
+
   function handleComplete(habit: HabitWithStatus) {
     closeOptions();
     handleLongPress(habit); // reutiliza la confirmación de "Completar" que ya tienes
@@ -237,6 +242,14 @@ export default function IndexScreen() {
             <Text style={styles.sheetTitle} numberOfLines={1}>
               {optionsHabit?.name}
             </Text>
+
+            <Pressable
+              style={styles.sheetRow}
+              onPress={() => optionsHabit && handleDetail(optionsHabit)}
+            >
+              <Ionicons name="stats-chart-outline" size={20} color={colors.textPrimary} />
+              <Text style={styles.sheetRowText}>Ver detalle</Text>
+            </Pressable>
 
             <Pressable
               style={styles.sheetRow}

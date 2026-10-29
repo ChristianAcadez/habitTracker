@@ -1,7 +1,7 @@
 // src/app/(tabs)/progress.tsx
 import { useState, useCallback } from 'react';
 import { useSQLiteContext } from 'expo-sqlite';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, router } from 'expo-router';
 import Svg, { Circle } from 'react-native-svg';
 import {
   getTotalStreak,
@@ -67,7 +67,7 @@ function CompletionRing({ percentage }: { percentage: number }) {
 
 function HabitStreakRow({ habit, onDelete }: { habit: HabitStreak; onDelete?: () => void }) {
   return (
-    <View style={styles.habitStreakRow}>
+    <Pressable style={styles.habitStreakRow} onPress={() => router.push(`/habit/${habit.id}`)}>
       <Text style={styles.habitStreakName}>{habit.name}</Text>
       <View style={styles.habitStreakRight}>
         <Text style={styles.habitStreakValue}>
@@ -78,8 +78,9 @@ function HabitStreakRow({ habit, onDelete }: { habit: HabitStreak; onDelete?: ()
             <Ionicons name="trash-outline" size={18} color={colors.textSecondary} />
           </Pressable>
         )}
+        <Ionicons name="chevron-forward" size={16} color={colors.textSecondary} />
       </View>
-    </View>
+    </Pressable>
   );
 }
 
@@ -203,7 +204,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  habitStreakName: { fontSize: 15, color: colors.textPrimary },
+  habitStreakName: { flex: 1, fontSize: 15, color: colors.textPrimary },
   habitStreakValue: { fontSize: 15, fontWeight: '600', color: colors.primary },
   empty: { color: colors.textSecondary, marginTop: 4, marginBottom: 12 },
   habitStreakRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
