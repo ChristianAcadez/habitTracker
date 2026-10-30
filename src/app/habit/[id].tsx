@@ -183,7 +183,8 @@ export default function HabitDetailScreen() {
                         if (day === null) return <View key={index} style={styles.cell} />;
 
                         const dateStr = toDateString(new Date(year, month - 1, day));
-                        const status = dayMap.get(dateStr); // true = cumplido, false = no cumplido, undefined = sin programar
+                        const status = dayMap.get(dateStr);
+                        const isToday = dateStr === today;
 
                         return (
                             <Pressable
@@ -197,9 +198,16 @@ export default function HabitDetailScreen() {
                                         styles.dayCircle,
                                         status === true && styles.dayDone,
                                         status === false && styles.dayMissed,
+                                        isToday && styles.dayToday,
                                     ]}
                                 >
-                                    <Text style={[styles.dayText, status === undefined && styles.dayTextMuted]}>
+                                    <Text
+                                        style={[
+                                            styles.dayText,
+                                            status === undefined && styles.dayTextMuted,
+                                            isToday && styles.dayTextToday,
+                                        ]}
+                                    >
                                         {day}
                                     </Text>
                                 </View>
@@ -289,4 +297,6 @@ const styles = StyleSheet.create({
         backgroundColor: colors.card,
     },
     editButtonText: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
+    dayToday: { borderWidth: 2, borderColor: colors.textPrimary },
+    dayTextToday: { fontWeight: '700' },
 });

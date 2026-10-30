@@ -5,6 +5,7 @@ import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useToday } from '../../hooks/useToday';
+import { toDateString } from '../../utils/date';
 import {
   getMonthSummary,
   getHabitsWithStatusForDate,
@@ -25,18 +26,17 @@ const WEEKDAY_LABELS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
 function buildCalendarGrid(year: number, month: number, summaries: DaySummary[]) {
   const statusByDate = new Map(summaries.map((s) => [s.date, s.status]));
-  const firstDayOfMonth = new Date(year, month - 1, 1);
+  const leadingBlanks = new Date(year, month - 1, 1).getDay();
   const daysInMonth = new Date(year, month, 0).getDate();
-  const leadingBlanks = firstDayOfMonth.getDay();
 
-  const cells: { day: number | null; status: DayStatus | null }[] = [];
+  const cells: { day: number | null; dateStr: string | null; status: DayStatus | null }[] = [];
 
   for (let i = 0; i < leadingBlanks; i++) {
-    cells.push({ day: null, status: null });
+    cells.push({ day: null, dateStr: null, status: null });
   }
   for (let day = 1; day <= daysInMonth; day++) {
-    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    cells.push({ day, status: statusByDate.get(dateStr) ?? null });
+    const dateStr = toDateString(new Date(year, month - 1, day));
+    cells.push({ day, dateStr, status: statusByDate.get(dateStr) ?? null });
   }
 
   return cells;
@@ -135,28 +135,29 @@ export default function CalendarScreen() {
       </View>
 
       <View style={styles.grid}>
-        {cells.map((cell, index) => (
-          <Pressable
-            key={index}
-            style={styles.cell}
-            disabled={cell.day === null}
-            onPress={() => {
-              const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(cell.day).padStart(2, '0')}`;
-              setSelectedDate(dateStr);
-            }}
-          >
-            {cell.day !== null && (
-              <View
-                style={[
-                  styles.dayCircle,
-                  cell.status && { backgroundColor: STATUS_COLORS[cell.status] },
-                ]}
-              >
-                <Text style={styles.dayText}>{cell.day}</Text>
-              </View>
-            )}
-          </Pressable>
-        ))}
+        {cells.map((cell, index) => {
+          const isToday = cell.dateStr === todayString;
+          return (
+            <Pressable
+              key={index}
+              style={styles.cell}
+              disabled={cell.dateStr === null}
+              onPress={() => cell.dateStr && setSelectedDate(cell.dateStr)}
+            >
+              {cell.day !== null && (
+                <View
+                  style={[
+                    styles.dayCircle,
+                    cell.status && { backgroundColor: STATUS_COLORS[cell.status] },
+                    isToday && styles.dayCircleToday,
+                  ]}
+                >
+                  <Text style={[styles.dayText, isToday && styles.dayTextToday]}>{cell.day}</Text>
+                </View>
+              )}
+            </Pressable>
+          );
+        })}
       </View>
 
       <Modal
@@ -280,4 +281,6 @@ const styles = StyleSheet.create({
   modalHabitTexts: { flex: 1 },
   modalHabitDescription: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   modalHint: { fontSize: 12, color: colors.textSecondary, marginTop: -8, marginBottom: 12 },
+  dayCircleToday: { borderWidth: 2, borderColor: colors.textPrimary },
+  dayTextToday: { fontWeight: '700' },
 });

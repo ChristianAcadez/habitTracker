@@ -204,7 +204,7 @@ export default function IndexScreen() {
             : undefined
         }
         renderItem={({ item }) => (
-          <View style={styles.habitRow}>
+          <View style={[styles.habitRow, item.completed && styles.habitRowDone]}>
             <Pressable
               style={styles.habitMain}
               onPress={() => handleToggle(item)}
@@ -304,9 +304,23 @@ const styles = StyleSheet.create({
   habitName: { fontSize: 16, color: colors.textPrimary },
   habitNameDone: { textDecorationLine: 'line-through', color: colors.textSecondary },
   empty: { color: colors.textSecondary, marginTop: 40, textAlign: 'center' },
-  habitRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  habitMain: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1 },
-  editButton: { padding: 6 },
+  habitRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: colors.card,
+    borderRadius: 12,
+  },
+  habitRowDone: { backgroundColor: colors.primaryMuted },
+  habitMain: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+    paddingVertical: 14,
+    paddingLeft: 16,
+  },
+  editButton: { paddingVertical: 14, paddingHorizontal: 12 },
   habitTexts: { flex: 1 },
   habitDescription: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   sheetOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
