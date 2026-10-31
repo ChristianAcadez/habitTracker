@@ -8,6 +8,8 @@ import { colors } from '../../constants/colors';
 import { useToday } from '../../hooks/useToday';
 import { View, Text, SectionList, Pressable, StyleSheet, Alert, Modal, Animated } from 'react-native';
 import { TIME_OF_DAY_ORDER, TIME_OF_DAY_LABELS, TIME_OF_DAY_ICONS } from '../../constants/timeOfDay';
+import AnimatedCheckbox from '../../components/AnimatedCheckbox';
+import { hapticMark, hapticUnmark, hapticAllDone } from '../../utils/haptics';
 
 
 function ProgressBar({ progress }: { progress: number }) {
@@ -122,6 +124,12 @@ export default function IndexScreen() {
 
   async function handleToggle(habit: HabitWithStatus) {
     const newValue = !habit.completed;
+    const completesTheDay =
+      newValue && habits.every((h) => h.id === habit.id || h.completed);
+
+    if (completesTheDay) hapticAllDone();
+    else if (newValue) hapticMark();
+    else hapticUnmark();
 
     setHabits((prev) =>
       prev.map((h) => (h.id === habit.id ? { ...h, completed: newValue } : h))
@@ -210,11 +218,7 @@ export default function IndexScreen() {
               onPress={() => handleToggle(item)}
               onLongPress={() => handleLongPress(item)}
             >
-              <Ionicons
-                name={item.completed ? 'checkbox' : 'square-outline'}
-                size={24}
-                color={item.completed ? colors.primary : colors.textSecondary}
-              />
+              <AnimatedCheckbox checked={!!item.completed} />
               <View style={styles.habitTexts}>
                 <Text style={[styles.habitName, item.completed && styles.habitNameDone]}>
                   {item.name}

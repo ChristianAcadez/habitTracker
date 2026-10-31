@@ -10,6 +10,7 @@ import { toDateString } from '../../utils/date';
 import { useToday } from '../../hooks/useToday';
 import { colors } from '../../constants/colors';
 import { TIME_OF_DAY_LABELS, TIME_OF_DAY_ICONS } from '../../constants/timeOfDay';
+import { hapticMark, hapticUnmark } from '../../utils/haptics';
 
 const WEEKDAY_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
 const WEEKDAY_INITIALS = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
@@ -87,6 +88,8 @@ export default function HabitDetailScreen() {
     async function handleToggleDay(dateStr: string) {
         if (!habit || !dayMap.has(dateStr)) return;
         const newValue = !dayMap.get(dateStr);
+        if (newValue) hapticMark();
+        else hapticUnmark();
 
         setDays((prev) => prev.map((d) => (d.date === dateStr ? { ...d, completed: newValue } : d)));
         await toggleHabitRecord(db, habit.id, habit.name, dateStr, newValue);

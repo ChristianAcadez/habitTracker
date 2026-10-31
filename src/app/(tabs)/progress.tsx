@@ -15,6 +15,7 @@ import { colors } from '../../constants/colors';
 import { useToday } from '../../hooks/useToday';
 import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { getEncouragement } from '../../utils/encouragement';
 
 interface HabitStreak {
   id: number;
@@ -146,6 +147,14 @@ export default function ProgressScreen() {
     }, [loadProgress])
   );
 
+  const hasHabits = activeHabits.length + completedHabits.length > 0;
+  const encouragement = getEncouragement({
+    streak: totalStreak,
+    completionRate,
+    hasHabits,
+    today,
+  });
+
   if (loading) {
     return (
       <View style={styles.container}>
@@ -164,7 +173,7 @@ export default function ProgressScreen() {
         <CompletionRing percentage={completionRate} />
       </View>
 
-      <Text style={styles.encouragement}>¡Sigue así!</Text>
+      <Text style={styles.encouragement}>{encouragement}</Text>
 
       <Text style={styles.sectionTitle}>Hábitos actuales</Text>
       {activeHabits.length === 0 ? (
@@ -194,7 +203,6 @@ const styles = StyleSheet.create({
   ringCenter: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   ringPercentage: { fontSize: 28, fontWeight: '700', color: colors.textPrimary },
   ringLabel: { fontSize: 13, color: colors.textSecondary },
-  encouragement: { textAlign: 'center', fontSize: 16, color: colors.primary, marginBottom: 24 },
   sectionTitle: { fontSize: 15, fontWeight: '600', marginBottom: 8, color: colors.textSecondary },
   completedTitle: { marginTop: 20 },
   habitStreakRow: {
@@ -208,4 +216,5 @@ const styles = StyleSheet.create({
   habitStreakValue: { fontSize: 15, fontWeight: '600', color: colors.primary },
   empty: { color: colors.textSecondary, marginTop: 4, marginBottom: 12 },
   habitStreakRight: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  encouragement: { textAlign: 'center', fontSize: 16, color: colors.primary, marginBottom: 24, paddingHorizontal: 12 },
 });

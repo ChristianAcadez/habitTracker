@@ -15,6 +15,7 @@ import {
   HabitWithStatus,
 } from '../../db/queries';
 import { colors } from '../../constants/colors';
+import { hapticMark, hapticUnmark } from '../../utils/haptics';
 
 const STATUS_COLORS: Record<DayStatus, string> = {
   complete: colors.statusComplete,
@@ -76,6 +77,8 @@ export default function CalendarScreen() {
   async function handleToggleHabit(habit: HabitWithStatus) {
     if (!selectedDate || isFutureDate) return;
     const newValue = !habit.completed;
+    if (newValue) hapticMark();
+    else hapticUnmark();
 
     setDayHabits((prev) =>
       prev.map((h) => (h.id === habit.id ? { ...h, completed: newValue } : h))
