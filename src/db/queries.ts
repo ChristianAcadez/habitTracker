@@ -142,41 +142,7 @@ export async function getMonthSummary(
   const monthEnd = `${year}-${monthStr}-${String(lastDayOfMonth).padStart(2, '0')}`;
   const end = monthEnd < today ? monthEnd : today;
 
-  if (start > end) return [];
-
-  const rows = await db.getAllAsync<{
-    date: string;
-    active_count: number;
-    completed_count: number;
-  }>(
-    `WITH RECURSIVE dates(date) AS (
-       SELECT date(?)
-       UNION ALL
-       SELECT date(date, '+1 day') FROM dates WHERE date < date(?)
-     )
-     SELECT
-       d.date,
-       (SELECT COUNT(*) FROM habits h
-          WHERE ${isScheduledOn('d.date')}) AS active_count,
-       (SELECT COUNT(*) FROM habits h
-          JOIN records r ON r.habit_id = h.id AND r.date = d.date AND r.completed = 1
-          WHERE ${isScheduledOn('d.date')}) AS completed_count
-     FROM dates d
-     ORDER BY d.date ASC`,
-    [start, end]
-  );
-
-  return rows
-    .filter((row) => row.active_count > 0) // sin hábitos programados ese día = día neutro (gris)
-    .map((row) => {
-      let status: DayStatus = 'none';
-      if (row.completed_count >= row.active_count) {
-        status = 'complete';
-      } else if (row.completed_count > 0) {
-        status = 'partial';
-      }
-      return { date: row.date, status };
-    });
+  return getDaySummariesInRange(db, start, end);
 }
 
 // ---------- Progreso ----------
@@ -303,4 +269,76 @@ export async function getHabitStreak(
   }
 
   return streak;
+}
+
+// Resumen por día en un rango de fechas. Los días sin hábitos programados no aparecen.
+export async function getDaySummariesInRange(
+  db: SQLiteDatabase,
+  start: string,
+  end: string
+): Promise<DaySummary[]> {
+  if (start > end) return [];
+
+  const rows = await db.getAllAsync<{
+    date: string;
+    active_count: number;
+    completed_count: number;
+  }>(
+    `WITH RECURSIVE dates(date) AS (
+       SELECT date(?)
+       UNION ALL
+       SELECT date(date, '+1 day') FROM dates WHERE date < date(?)
+     )
+     SELECT
+       d.date,
+       (SELECT COUNT(*) FROM habits h
+          WHERE ${isScheduledOn('d.date')}) AS active_count,
+       (SELECT COUNT(*) FROM habits h
+          JOIN records r ON r.habit_id = h.id AND r.date = d.date AND r.completed = 1
+          WHERE ${isScheduledOn('d.date')}) AS completed_count
+     FROM dates d
+     ORDER BY d.date ASC`,
+    [start, end]
+  );
+
+  return rows
+    .filter((row) => row.active_count > 0)
+    .map((row) => {
+      let status: DayStatus = 'none';
+      if (row.completed_count >= row.active_count) {
+        status = 'complete';
+      } else if (row.completed_count > 0) {
+        status = 'partial';
+      }
+      return { date: row.date, status };
+    });
+}
+
+export async function getRecentDaysSummary(
+  db: SQLiteDatabase,
+  today: string,
+  count: number = 7
+): Promise<DaySummary[]> {
+  return getDaySummariesInRange(db, shiftDate(today, -(count - 1)), today);
+}
+
+export async function getBestTotalStreak(db: SQLiteDatabase, today: string): Promise<number> {
+  const first = await db.getFirstAsync<{ first_date: string | null }>(
+    `SELECT MIN(created_at) AS first_date FROM habits`
+  );
+  if (!first?.first_date) return 0;
+
+  const days = await getDaySummariesInRange(db, first.first_date, today);
+
+  let run = 0;
+  let best = 0;
+  for (const day of days) {
+    if (day.status === 'complete') {
+      run++;
+      if (run > best) best = run;
+    } else if (day.date !== today) {
+      run = 0;
+    }
+  }
+  return best;
 }

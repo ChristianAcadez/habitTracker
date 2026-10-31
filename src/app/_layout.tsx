@@ -4,11 +4,14 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { Theme, ThemeProvider, DarkTheme } from 'expo-router/react-navigation';
 import { initDatabase } from '../db/schema';
 import { colors } from '../constants/colors';
+import * as SystemUI from 'expo-system-ui';
 
 const appTheme: Theme = {
   ...DarkTheme,
   colors: { ...DarkTheme.colors, background: colors.background, card: colors.surface },
 };
+
+SystemUI.setBackgroundColorAsync(colors.background);
 
 export default function RootLayout() {
   return (

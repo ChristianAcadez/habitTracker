@@ -1,6 +1,7 @@
 {
   "expo": {
     "name": "habitTracker",
+    "backgroundColor": "#1C1C1E",
     "slug": "habitTracker",
     "version": "1.0.0",
     "orientation": "portrait",
