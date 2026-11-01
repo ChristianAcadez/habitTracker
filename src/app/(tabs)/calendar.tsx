@@ -100,6 +100,10 @@ export default function CalendarScreen() {
     }, [loadMonth])
   );
 
+  useEffect(() => {
+    loadMonth();
+  }, [loadMonth]);
+
   function goToPreviousMonth() {
     if (month === 1) {
       setMonth(12);

@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { View, Text, ScrollView, Pressable, Alert, StyleSheet } from 'react-native';
 import { useSQLiteContext } from 'expo-sqlite';
 import { useFocusEffect, router } from 'expo-router';
@@ -141,6 +141,10 @@ export default function ProgressScreen() {
       loadProgress();
     }, [loadProgress])
   );
+
+  useEffect(() => {
+    loadProgress();
+  }, [loadProgress]);
 
   function confirmDelete(habit: HabitStreak) {
     Alert.alert(
