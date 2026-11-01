@@ -1,8 +1,12 @@
 import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { colors } from '../../constants/colors';
+import { useReminderSync } from '../../hooks/useReminderSync';
+import { useNotificationObserver } from '../../hooks/useNotificationObserver';
 
 export default function TabsLayout() {
+  useReminderSync();
+  useNotificationObserver();
   return (
     <Tabs
       initialRouteName="index"

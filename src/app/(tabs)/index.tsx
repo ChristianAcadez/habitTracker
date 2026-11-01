@@ -163,9 +163,14 @@ export default function IndexScreen() {
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.date}>{formatDisplayDate(new Date(today + 'T00:00:00'))}</Text>
-        <Pressable onPress={() => router.push('/add-habit')}>
-          <Ionicons name="add-circle" size={32} color={colors.primary} />
-        </Pressable>
+        <View style={styles.headerActions}>
+          <Pressable onPress={() => router.push('/reminders')} hitSlop={8}>
+            <Ionicons name="notifications-outline" size={26} color={colors.textSecondary} />
+          </Pressable>
+          <Pressable onPress={() => router.push('/add-habit')} hitSlop={8}>
+            <Ionicons name="add-circle" size={32} color={colors.primary} />
+          </Pressable>
+        </View>
       </View>
 
       {totalCount > 0 && (
@@ -371,4 +376,5 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
+  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
 });

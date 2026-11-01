@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from 'expo-sqlite';
 import { getTodayString, toDateString } from '../utils/date';
 import { parseWeekdays, serializeWeekdays } from '../utils/weekdays';
 import type { TimeOfDay } from '../constants/timeOfDay';
+import { notifyDataChanged } from './changes';
 
 export interface Habit {
   id: number;
@@ -72,6 +73,7 @@ export async function toggleHabitRecord(
      DO UPDATE SET completed = excluded.completed`,
     [habitId, habitName, date, completed ? 1 : 0]
   );
+  notifyDataChanged();
 }
 
 // ---------- Crear / editar / completar ----------
@@ -89,6 +91,7 @@ export async function createHabit(
      VALUES (?, ?, ?, ?, ?, ?)`,
     [name, description, serializeWeekdays(weekdays), timeOfDay, getTodayString(), endDate]
   );
+  notifyDataChanged();
 }
 
 export async function updateHabit(
@@ -106,10 +109,12 @@ export async function updateHabit(
      WHERE id = ?`,
     [name, description, serializeWeekdays(weekdays), timeOfDay, endDate, habitId]
   );
+  notifyDataChanged();
 }
 
 export async function completeHabit(db: SQLiteDatabase, habitId: number, today: string) {
   await db.runAsync(`UPDATE habits SET end_date = ? WHERE id = ?`, [today, habitId]);
+  notifyDataChanged();
 }
 
 export async function getHabitById(db: SQLiteDatabase, habitId: number): Promise<Habit | null> {
@@ -126,6 +131,7 @@ export async function deleteHabit(db: SQLiteDatabase, habitId: number) {
     await db.runAsync(`DELETE FROM records WHERE habit_id = ?`, [habitId]);
     await db.runAsync(`DELETE FROM habits WHERE id = ?`, [habitId]);
   });
+  notifyDataChanged();
 }
 
 // ---------- Calendario ----------

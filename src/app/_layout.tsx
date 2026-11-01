@@ -5,6 +5,7 @@ import { Theme, ThemeProvider, DarkTheme } from 'expo-router/react-navigation';
 import { initDatabase } from '../db/schema';
 import { colors } from '../constants/colors';
 import * as SystemUI from 'expo-system-ui';
+import { setupNotifications } from '../notifications/reminders';
 
 const appTheme: Theme = {
   ...DarkTheme,
@@ -12,6 +13,7 @@ const appTheme: Theme = {
 };
 
 SystemUI.setBackgroundColorAsync(colors.background);
+setupNotifications();
 
 export default function RootLayout() {
   return (
@@ -41,6 +43,15 @@ export default function RootLayout() {
             name="habit/[id]"
             options={{
               title: 'Detalle del hábito',
+              headerStyle: { backgroundColor: colors.surface },
+              headerTintColor: colors.textPrimary,
+            }}
+          />
+          <Stack.Screen
+            name="reminders"
+            options={{
+              presentation: 'modal',
+              title: 'Recordatorios',
               headerStyle: { backgroundColor: colors.surface },
               headerTintColor: colors.textPrimary,
             }}
