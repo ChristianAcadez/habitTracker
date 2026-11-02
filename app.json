@@ -24,7 +24,13 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      ["expo-notifications", { "icon": "./assets/images/habit-notification-icon.png", "color": "#4CAF50" }],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/habit-notification-icon.png",
+          "color": "#4CAF50"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -35,7 +41,9 @@
         }
       ],
       "expo-sqlite",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
