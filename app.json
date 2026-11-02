@@ -12,6 +12,7 @@
       "icon": "./assets/expo.icon"
     },
     "android": {
+      "package": "com.christianacadez.habittracker",
       "adaptiveIcon": {
         "backgroundColor": "#1C1C1E",
         "foregroundImage": "./assets/images/habit-icon-foreground.png",
